@@ -25,6 +25,7 @@ export class SnakeScene implements Scene {
   private readonly joystick = new GestureJoystick({ deadZone: 0.035, maxDistance: 0.32 });
   private readonly game: SnakeGame;
   private latestJoystick = EMPTY_JOYSTICK;
+  private hasRecordedFinalScore = false;
 
   constructor(private readonly options: SnakeSceneOptions) {
     this.game = new SnakeGame({ width: options.bounds.width, height: options.bounds.height });
@@ -43,8 +44,11 @@ export class SnakeScene implements Scene {
     this.latestJoystick = this.joystick.update(context.input.normalizedPointer);
     this.game.update(this.latestJoystick, context.deltaSeconds);
 
-    if (this.game.getState().status === "game-over") {
-      this.options.recordBestScore(this.game.getState().score);
+    const gameState = this.game.getState();
+
+    if (gameState.status === "game-over" && !this.hasRecordedFinalScore) {
+      this.hasRecordedFinalScore = true;
+      this.options.recordBestScore(gameState.score);
     }
 
     return NO_TRANSITION;

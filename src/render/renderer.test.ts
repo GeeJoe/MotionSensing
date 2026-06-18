@@ -167,6 +167,23 @@ describe("Renderer", () => {
     });
   });
 
+  it("renderSnake draws through the same snake renderer path", () => {
+    const context = new FakeCanvasContext();
+    const renderer = createRenderer(context);
+    const tracking: TrackingFrame = {
+      errorMessage: null,
+      point: { x: 0.25, y: 0.75, z: 0 },
+      status: "tracking",
+    };
+
+    renderer.renderSnake(game, { joystick, tracking });
+
+    expect(context.calls).toContainEqual({
+      method: "arc",
+      args: [240, 480, 6, 0, Math.PI * 2],
+    });
+  });
+
   it("draws menu cards", () => {
     const context = new FakeCanvasContext();
     const renderer = createRenderer(context);
