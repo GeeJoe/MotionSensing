@@ -75,7 +75,7 @@ beforeEach(() => {
 });
 
 describe("extractIndexFingerTip", () => {
-  it("returns landmark 8 from the first detected hand", () => {
+  it("returns mirrored landmark 8 from the first detected hand", () => {
     const landmarks = Array.from({ length: 21 }, (_, index) => ({
       x: index / 100,
       y: index / 200,
@@ -84,7 +84,7 @@ describe("extractIndexFingerTip", () => {
     }));
 
     expect(extractIndexFingerTip({ landmarks: [landmarks] })).toEqual({
-      x: 0.08,
+      x: 0.92,
       y: 0.04,
     });
   });
@@ -166,6 +166,25 @@ describe("CameraTracker", () => {
 
     expect(close).toHaveBeenCalledTimes(1);
     expect(video.srcObject).toBeNull();
+  });
+
+  it("returns an error frame when camera access is rejected", async () => {
+    const getUserMedia = vi.fn().mockRejectedValue(new Error("Permission denied"));
+    const video = createVideo();
+
+    mediaPipeMocks.createFromOptions.mockResolvedValue({
+      close: vi.fn(),
+      detectForVideo: vi.fn(),
+    });
+    setGetUserMedia(getUserMedia);
+
+    const tracker = new CameraTracker(video as unknown as HTMLVideoElement);
+
+    await expect(tracker.start()).resolves.toEqual({
+      point: null,
+      status: "error",
+      errorMessage: "Permission denied",
+    });
   });
 
   it("stops the camera stream and clears the video when playback fails", async () => {

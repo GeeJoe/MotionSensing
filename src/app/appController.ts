@@ -107,10 +107,15 @@ export class AppController {
 
   private async startInternal(): Promise<void> {
     this.render();
-    await this.tracker.start();
+    this.latestTracking = await this.tracker.start();
+    this.render();
 
     if (this.disposed) {
       this.tracker.dispose();
+      return;
+    }
+
+    if (this.latestTracking.status === "error") {
       return;
     }
 

@@ -27,7 +27,8 @@ export function extractIndexFingerTip(result: LandmarkResultLike): Point | null 
     return null;
   }
 
-  return { x: indexTip.x, y: indexTip.y };
+  // The preview is mirrored for a selfie-style camera view; mirror x so controls match it.
+  return { x: 1 - indexTip.x, y: indexTip.y };
 }
 
 export class CameraTracker {
@@ -42,7 +43,7 @@ export class CameraTracker {
 
   constructor(private readonly video: HTMLVideoElement) {}
 
-  async start(): Promise<void> {
+  async start(): Promise<TrackingFrame> {
     try {
       this.setNoPointFrame("loading");
       this.landmarker = await this.createLandmarker();
@@ -58,10 +59,10 @@ export class CameraTracker {
 
       this.video.srcObject = this.stream;
       await this.video.play();
-      this.setNoPointFrame("searching");
+      return this.setNoPointFrame("searching");
     } catch (error) {
       this.releaseResources();
-      this.setNoPointFrame("error", error instanceof Error ? error.message : "Unable to start camera tracking");
+      return this.setNoPointFrame("error", error instanceof Error ? error.message : "Unable to start camera tracking");
     }
   }
 
