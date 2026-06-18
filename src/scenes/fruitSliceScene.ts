@@ -35,7 +35,7 @@ export class FruitSliceScene implements Scene {
     }
 
     if (clickId === "fruit:restart" && this.game.getState().status === "game-over") {
-      this.game = this.createGame(3, []);
+      this.game = this.createGame(3, undefined);
       this.hasRecordedFinalScore = false;
       return NO_TRANSITION;
     }
@@ -61,8 +61,23 @@ export class FruitSliceScene implements Scene {
       height: this.options.bounds.height,
       lives,
       random: this.options.random,
-      initialObjects,
+      initialObjects: initialObjects ?? [this.createStarterFruit()],
     });
+  }
+
+  private createStarterFruit(): SliceObject {
+    return {
+      id: "fruit-1",
+      kind: "fruit",
+      fruitType: "apple",
+      position: {
+        x: this.options.bounds.width / 2,
+        y: this.options.bounds.height - 140,
+      },
+      velocity: { x: 0, y: -520 },
+      radius: 42,
+      sliced: false,
+    };
   }
 
   private recordCurrentScore(): void {
