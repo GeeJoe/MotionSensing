@@ -1,5 +1,5 @@
 import { CameraTracker } from "../camera/cameraTracker";
-import { GestureJoystick } from "../domain/gestureJoystick";
+import { FIXED_JOYSTICK_ORIGIN, GestureJoystick } from "../domain/gestureJoystick";
 import { SnakeGame } from "../domain/snakeGame";
 import type { JoystickOutput, TrackingFrame } from "../domain/types";
 import { Renderer } from "../render/renderer";
@@ -12,7 +12,7 @@ const EMPTY_JOYSTICK: JoystickOutput = {
   direction: { x: 0, y: 0 },
   magnitude: 0,
   speedScale: 0,
-  origin: null,
+  origin: { ...FIXED_JOYSTICK_ORIGIN },
 };
 
 export class AppController {

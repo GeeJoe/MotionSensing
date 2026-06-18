@@ -118,7 +118,7 @@ const joystick: JoystickOutput = {
   active: true,
   direction: { x: 1, y: 0 },
   magnitude: 0.4,
-  origin: { x: 0.2, y: 0.3 },
+  origin: { x: 0.5, y: 0.5 },
   speedScale: 0.5,
 };
 
@@ -145,6 +145,23 @@ describe("Renderer", () => {
     expect(context.calls).toContainEqual({
       method: "arc",
       args: [240, 480, 6, 0, Math.PI * 2],
+    });
+  });
+
+  it("draws the fixed joystick center marker in the game area", () => {
+    const context = new FakeCanvasContext();
+    const renderer = createRenderer(context);
+    const tracking: TrackingFrame = {
+      errorMessage: null,
+      point: null,
+      status: "searching",
+    };
+
+    renderer.render(game, { joystick, tracking });
+
+    expect(context.calls).toContainEqual({
+      method: "arc",
+      args: [480, 320, 4, 0, Math.PI * 2],
     });
   });
 });

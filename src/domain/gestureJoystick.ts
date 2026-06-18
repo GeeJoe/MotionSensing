@@ -6,18 +6,23 @@ interface GestureJoystickOptions {
   maxDistance: number;
 }
 
-function inactiveOutput(origin: Point | null, magnitude = 0): JoystickOutput {
+export const FIXED_JOYSTICK_ORIGIN: Point = { x: 0.5, y: 0.5 };
+
+function fixedOrigin(): Point {
+  return { ...FIXED_JOYSTICK_ORIGIN };
+}
+
+function inactiveOutput(magnitude = 0): JoystickOutput {
   return {
     active: false,
     direction: { x: 0, y: 0 },
     magnitude,
     speedScale: 0,
-    origin: origin ? { ...origin } : null,
+    origin: fixedOrigin(),
   };
 }
 
 export class GestureJoystick {
-  private origin: Point | null = null;
   private readonly deadZone: number;
   private readonly maxDistance: number;
 
@@ -28,20 +33,14 @@ export class GestureJoystick {
 
   update(point: Point | null): JoystickOutput {
     if (!point) {
-      this.origin = null;
-      return inactiveOutput(null);
+      return inactiveOutput();
     }
 
-    if (!this.origin) {
-      this.origin = { ...point };
-      return inactiveOutput(this.origin);
-    }
-
-    const delta = subtract(point, this.origin);
+    const delta = subtract(point, FIXED_JOYSTICK_ORIGIN);
     const length = magnitude(delta);
 
     if (length <= this.deadZone) {
-      return inactiveOutput(this.origin, length);
+      return inactiveOutput(length);
     }
 
     const usableRange = Math.max(this.maxDistance - this.deadZone, Number.EPSILON);
@@ -52,7 +51,7 @@ export class GestureJoystick {
       direction: normalize(delta),
       magnitude: length,
       speedScale,
-      origin: { ...this.origin },
+      origin: fixedOrigin(),
     };
   }
 }

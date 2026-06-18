@@ -74,6 +74,7 @@ export class Renderer {
 
     this.drawFood(game);
     this.drawSnake(game);
+    this.drawJoystickCenter(game);
     this.drawFingerPoint(game, debug.tracking);
     this.context.restore();
 
@@ -130,6 +131,13 @@ export class Renderer {
       0,
       Math.PI * 2,
     );
+    this.context.fill();
+  }
+
+  private drawJoystickCenter(game: SnakeGameState): void {
+    this.context.fillStyle = "#8ecae6";
+    this.context.beginPath();
+    this.context.arc(game.bounds.width / 2, game.bounds.height / 2, 4, 0, Math.PI * 2);
     this.context.fill();
   }
 
