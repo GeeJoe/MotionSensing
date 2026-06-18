@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { FruitSliceState } from "../domain/fruitSlice";
 import type { JoystickOutput, SnakeGameState, TrackingFrame } from "../domain/types";
 import { Renderer } from "./renderer";
 
@@ -124,6 +125,34 @@ const joystick: JoystickOutput = {
   speedScale: 0.5,
 };
 
+const fruitSliceState: FruitSliceState = {
+  bounds: { width: 960, height: 640 },
+  combo: 1,
+  elapsedSeconds: 4,
+  lives: 3,
+  objects: [
+    {
+      fruitType: "apple",
+      id: "fruit-1",
+      kind: "fruit",
+      position: { x: 200, y: 240 },
+      radius: 38,
+      sliced: false,
+      velocity: { x: 0, y: 0 },
+    },
+    {
+      id: "bomb-1",
+      kind: "bomb",
+      position: { x: 420, y: 240 },
+      radius: 36,
+      sliced: false,
+      velocity: { x: 0, y: 0 },
+    },
+  ],
+  score: 12,
+  status: "running",
+};
+
 describe("Renderer", () => {
   beforeEach(() => {
     vi.stubGlobal("window", { devicePixelRatio: 1 });
@@ -240,6 +269,86 @@ describe("Renderer", () => {
       method: "strokeRect",
       args: [440, 120, 300, 200],
       strokeStyle: "#2f435b",
+    });
+  });
+
+  it("renderPointer draws the pointer click animation ring", () => {
+    const context = new FakeCanvasContext();
+    const renderer = createRenderer(context);
+
+    renderer.renderPointer({
+      clickAnimation: {
+        active: true,
+        point: { x: 100, y: 120 },
+        progress: 0.5,
+      },
+      pointer: { x: 100, y: 120 },
+    });
+
+    expect(context.calls).toContainEqual({
+      method: "arc",
+      args: [100, 120, 18, 0, Math.PI * 2],
+    });
+  });
+
+  it("renderHomeButton draws the home button label", () => {
+    const context = new FakeCanvasContext();
+    const renderer = createRenderer(context);
+
+    renderer.renderHomeButton(true);
+
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Home", 60, 38],
+    });
+  });
+
+  it("renderFruitSlice falls back to fruit and bomb circles when images are unavailable", () => {
+    const context = new FakeCanvasContext();
+    const renderer = createRenderer(context);
+
+    renderer.renderFruitSlice(fruitSliceState);
+
+    expect(context.calls).toContainEqual({
+      method: "arc",
+      args: [200, 240, 38, 0, Math.PI * 2],
+    });
+    expect(context.calls).toContainEqual({
+      method: "arc",
+      args: [420, 240, 36, 0, Math.PI * 2],
+    });
+  });
+
+  it("renderFruitSlice draws a restart button on game over", () => {
+    const context = new FakeCanvasContext();
+    const renderer = createRenderer(context);
+
+    renderer.renderFruitSlice({
+      ...fruitSliceState,
+      objects: [],
+      status: "game-over",
+    });
+
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Restart", 480, 385],
+    });
+  });
+
+  it("renderTrackingError draws the error message centered", () => {
+    const context = new FakeCanvasContext();
+    const renderer = createRenderer(context);
+    const tracking: TrackingFrame = {
+      errorMessage: "Permission denied",
+      point: null,
+      status: "error",
+    };
+
+    renderer.renderTrackingError(tracking);
+
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Permission denied", 480, 320],
     });
   });
 });

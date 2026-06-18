@@ -1,4 +1,6 @@
-import type { JoystickOutput, SnakeGameState, TrackingFrame } from "../domain/types";
+import { bombAsset, fruitAssets } from "../assets/fruit/manifest";
+import type { FruitSliceState, SliceObject } from "../domain/fruitSlice";
+import type { ClickAnimationState, JoystickOutput, Point, SnakeGameState, TrackingFrame } from "../domain/types";
 import { clamp } from "../domain/vector";
 
 export interface MenuCardView {
@@ -35,6 +37,7 @@ interface CanvasMetrics {
 
 export class Renderer {
   private readonly context: CanvasRenderingContext2D;
+  private readonly imageCache = new Map<string, HTMLImageElement>();
 
   constructor(private readonly elements: RendererElements) {
     const context = elements.canvas.getContext("2d");
@@ -77,6 +80,111 @@ export class Renderer {
       this.context.font = "500 16px system-ui";
       this.context.fillText(card.description, card.rect.x + 24, card.rect.y + 72);
       this.context.fillText(`Best ${card.bestScore}`, card.rect.x + 24, card.rect.y + card.rect.height - 42);
+    }
+  }
+
+  renderPointer(view: { pointer: Point | null; clickAnimation: ClickAnimationState }): void {
+    this.resizeCanvas();
+    this.context.save();
+
+    if (view.pointer) {
+      this.context.fillStyle = "#ffd166";
+      this.context.beginPath();
+      this.context.arc(view.pointer.x, view.pointer.y, 7, 0, Math.PI * 2);
+      this.context.fill();
+    }
+
+    if (view.clickAnimation.active && view.clickAnimation.point) {
+      const progress = clamp(view.clickAnimation.progress, 0, 1);
+      this.context.strokeStyle = `rgba(255, 209, 102, ${1 - progress})`;
+      this.context.lineWidth = 3;
+      this.context.beginPath();
+      this.context.arc(view.clickAnimation.point.x, view.clickAnimation.point.y, 12 + progress * 12, 0, Math.PI * 2);
+      this.context.stroke();
+    }
+
+    this.context.restore();
+  }
+
+  renderHomeButton(hovered: boolean): void {
+    this.resizeCanvas();
+
+    const x = 24;
+    const y = 18;
+    const width = 72;
+    const height = 40;
+
+    this.context.fillStyle = hovered ? "#1d3b4f" : "#121b26";
+    this.context.fillRect(x, y, width, height);
+    this.context.strokeStyle = hovered ? "#ffd166" : "#2f435b";
+    this.context.lineWidth = 2;
+    this.context.strokeRect(x, y, width, height);
+    this.context.fillStyle = "#e8eef7";
+    this.context.font = "700 16px system-ui";
+    this.context.textAlign = "center";
+    this.context.textBaseline = "middle";
+    this.context.fillText("Home", x + width / 2, y + height / 2);
+  }
+
+  renderTrackingError(tracking: TrackingFrame): void {
+    const metrics = this.resizeCanvas();
+    this.context.clearRect(0, 0, metrics.width, metrics.height);
+    this.context.fillStyle = "#101820";
+    this.context.fillRect(0, 0, metrics.width, metrics.height);
+    this.drawCenteredText(tracking.errorMessage ?? "Tracking unavailable", metrics);
+  }
+
+  renderFruitSlice(state: FruitSliceState): void {
+    const metrics = this.resizeCanvas();
+    const scale = Math.min(metrics.width / state.bounds.width, metrics.height / state.bounds.height);
+    const offsetX = (metrics.width - state.bounds.width * scale) / 2;
+    const offsetY = (metrics.height - state.bounds.height * scale) / 2;
+
+    this.context.clearRect(0, 0, metrics.width, metrics.height);
+    this.context.fillStyle = "#101820";
+    this.context.fillRect(0, 0, metrics.width, metrics.height);
+    this.context.save();
+    this.context.translate(offsetX, offsetY);
+    this.context.scale(scale, scale);
+    this.context.strokeStyle = "#2f435b";
+    this.context.lineWidth = 2;
+    this.context.strokeRect(1, 1, state.bounds.width - 2, state.bounds.height - 2);
+
+    for (const object of state.objects) {
+      this.drawSliceObject(object);
+    }
+
+    this.context.restore();
+    this.context.fillStyle = "#e8eef7";
+    this.context.font = "700 22px system-ui";
+    this.context.textAlign = "left";
+    this.context.textBaseline = "top";
+    this.context.fillText(`Score ${state.score}`, 24, 24);
+    this.context.textAlign = "right";
+    this.context.fillText(`Lives ${state.lives}`, metrics.width - 24, 24);
+
+    if (state.combo > 1) {
+      this.context.textAlign = "center";
+      this.context.fillText(`Combo x${state.combo}`, metrics.width / 2, 24);
+    }
+
+    if (state.status === "game-over") {
+      this.drawCenteredText("Game Over", metrics);
+      const buttonWidth = 160;
+      const buttonHeight = 50;
+      const buttonX = metrics.width / 2 - buttonWidth / 2;
+      const buttonY = metrics.height / 2 + 40;
+
+      this.context.fillStyle = "#ffd166";
+      this.context.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+      this.context.strokeStyle = "#e8eef7";
+      this.context.lineWidth = 2;
+      this.context.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+      this.context.fillStyle = "#101820";
+      this.context.font = "700 20px system-ui";
+      this.context.textAlign = "center";
+      this.context.textBaseline = "middle";
+      this.context.fillText("Restart", metrics.width / 2, buttonY + buttonHeight / 2);
     }
   }
 
@@ -179,6 +287,45 @@ export class Renderer {
     this.context.beginPath();
     this.context.arc(game.bounds.width / 2, game.bounds.height / 2, 4, 0, Math.PI * 2);
     this.context.fill();
+  }
+
+  private drawSliceObject(object: SliceObject): void {
+    const size = object.radius * 2;
+    const src = object.kind === "bomb" ? bombAsset : fruitAssets[object.fruitType].whole;
+
+    if (this.drawImageAsset(src, object.position.x, object.position.y, size)) {
+      return;
+    }
+
+    this.context.fillStyle = object.kind === "bomb" ? "#2b2d42" : "#ff6b6b";
+    this.context.strokeStyle = object.kind === "bomb" ? "#f87171" : "#ffd166";
+    this.context.lineWidth = object.kind === "bomb" ? 3 : 2;
+    this.context.beginPath();
+    this.context.arc(object.position.x, object.position.y, object.radius, 0, Math.PI * 2);
+    this.context.fill();
+    this.context.stroke();
+  }
+
+  private drawImageAsset(src: string, x: number, y: number, size: number): boolean {
+    if (typeof Image === "undefined") {
+      return false;
+    }
+
+    let image = this.imageCache.get(src);
+
+    if (!image) {
+      image = new Image();
+      image.src = src;
+      this.imageCache.set(src, image);
+    }
+
+    if (!image.complete || image.naturalWidth <= 0) {
+      return false;
+    }
+
+    this.context.drawImage(image, x - size / 2, y - size / 2, size, size);
+
+    return true;
   }
 
   private drawCenteredText(text: string, metrics: CanvasMetrics): void {
