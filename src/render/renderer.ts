@@ -14,6 +14,11 @@ interface RenderDebugState {
   joystick: JoystickOutput;
 }
 
+interface CanvasMetrics {
+  width: number;
+  height: number;
+}
+
 export class Renderer {
   private readonly context: CanvasRenderingContext2D;
 
@@ -28,15 +33,18 @@ export class Renderer {
   }
 
   render(game: SnakeGameState, debug: RenderDebugState): void {
-    this.resizeCanvas();
-    this.drawGame(game, debug);
+    const metrics = this.resizeCanvas();
+
+    this.drawGame(game, debug, metrics);
     this.updateDebugPanel(game, debug);
   }
 
-  private resizeCanvas(): void {
+  private resizeCanvas(): CanvasMetrics {
     const rect = this.elements.canvas.getBoundingClientRect();
-    const nextWidth = Math.max(1, Math.floor(rect.width * window.devicePixelRatio));
-    const nextHeight = Math.max(1, Math.floor(rect.height * window.devicePixelRatio));
+    const width = Math.max(1, rect.width);
+    const height = Math.max(1, rect.height);
+    const nextWidth = Math.max(1, Math.floor(width * window.devicePixelRatio));
+    const nextHeight = Math.max(1, Math.floor(height * window.devicePixelRatio));
 
     if (this.elements.canvas.width !== nextWidth || this.elements.canvas.height !== nextHeight) {
       this.elements.canvas.width = nextWidth;
@@ -44,19 +52,21 @@ export class Renderer {
     }
 
     this.context.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+
+    return { width, height };
   }
 
-  private drawGame(game: SnakeGameState, debug: RenderDebugState): void {
-    const width = this.elements.canvas.clientWidth;
-    const height = this.elements.canvas.clientHeight;
-    const scaleX = width / game.bounds.width;
-    const scaleY = height / game.bounds.height;
+  private drawGame(game: SnakeGameState, debug: RenderDebugState, metrics: CanvasMetrics): void {
+    const scale = Math.min(metrics.width / game.bounds.width, metrics.height / game.bounds.height);
+    const offsetX = (metrics.width - game.bounds.width * scale) / 2;
+    const offsetY = (metrics.height - game.bounds.height * scale) / 2;
 
-    this.context.clearRect(0, 0, width, height);
+    this.context.clearRect(0, 0, metrics.width, metrics.height);
     this.context.fillStyle = "#101820";
-    this.context.fillRect(0, 0, width, height);
+    this.context.fillRect(0, 0, metrics.width, metrics.height);
     this.context.save();
-    this.context.scale(scaleX, scaleY);
+    this.context.translate(offsetX, offsetY);
+    this.context.scale(scale, scale);
     this.context.strokeStyle = "#2f435b";
     this.context.lineWidth = 2;
     this.context.strokeRect(1, 1, game.bounds.width - 2, game.bounds.height - 2);
@@ -66,11 +76,11 @@ export class Renderer {
     this.context.restore();
 
     if (debug.tracking.status === "searching") {
-      this.drawCenteredText("Searching for finger");
+      this.drawCenteredText("Searching for finger", metrics);
     }
 
     if (game.status === "game-over") {
-      this.drawCenteredText("Game Over");
+      this.drawCenteredText("Game Over", metrics);
     }
   }
 
@@ -104,17 +114,14 @@ export class Renderer {
     this.context.fill();
   }
 
-  private drawCenteredText(text: string): void {
-    const width = this.elements.canvas.clientWidth;
-    const height = this.elements.canvas.clientHeight;
-
+  private drawCenteredText(text: string, metrics: CanvasMetrics): void {
     this.context.fillStyle = "rgba(11, 17, 23, 0.72)";
-    this.context.fillRect(0, height / 2 - 34, width, 68);
+    this.context.fillRect(0, metrics.height / 2 - 34, metrics.width, 68);
     this.context.fillStyle = "#e8eef7";
     this.context.font = "600 24px system-ui";
     this.context.textAlign = "center";
     this.context.textBaseline = "middle";
-    this.context.fillText(text, width / 2, height / 2);
+    this.context.fillText(text, metrics.width / 2, metrics.height / 2);
   }
 
   private updateDebugPanel(game: SnakeGameState, debug: RenderDebugState): void {
