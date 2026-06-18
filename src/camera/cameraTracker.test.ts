@@ -28,7 +28,10 @@ interface FakeVideo {
 interface TrackerInternals {
   landmarker: {
     close: () => void;
-    detectForVideo: (video: HTMLVideoElement, timestampMs: number) => { landmarks: Array<Array<{ x: number; y: number }>> };
+    detectForVideo: (
+      video: HTMLVideoElement,
+      timestampMs: number,
+    ) => { landmarks: Array<Array<{ x: number; y: number; z?: number }>> };
   } | null;
   lastVideoTime: number;
   latestFrame: TrackingFrame;
@@ -75,11 +78,10 @@ beforeEach(() => {
 });
 
 describe("extractIndexFingerTip", () => {
-  it("returns mirrored landmark 8 from the first detected hand", () => {
+  it("returns mirrored x, y, and fallback z 0 for landmark 8", () => {
     const landmarks = Array.from({ length: 21 }, (_, index) => ({
       x: index / 100,
       y: index / 200,
-      z: 0,
       visibility: 0,
     }));
 
