@@ -1,6 +1,19 @@
 import type { JoystickOutput, SnakeGameState, TrackingFrame } from "../domain/types";
 import { clamp } from "../domain/vector";
 
+export interface MenuCardView {
+  id: string;
+  title: string;
+  description: string;
+  bestScore: number;
+  rect: { x: number; y: number; width: number; height: number };
+  hovered: boolean;
+}
+
+export interface MenuView {
+  cards: MenuCardView[];
+}
+
 interface RendererElements {
   canvas: HTMLCanvasElement;
   statusValue: HTMLElement;
@@ -38,6 +51,29 @@ export class Renderer {
 
     this.drawGame(game, debug, metrics);
     this.updateDebugPanel(game, debug);
+  }
+
+  renderMenu(view: MenuView): void {
+    const metrics = this.resizeCanvas();
+    this.context.clearRect(0, 0, metrics.width, metrics.height);
+    this.context.fillStyle = "#101820";
+    this.context.fillRect(0, 0, metrics.width, metrics.height);
+
+    for (const card of view.cards) {
+      this.context.fillStyle = card.hovered ? "#1d3b4f" : "#121b26";
+      this.context.fillRect(card.rect.x, card.rect.y, card.rect.width, card.rect.height);
+      this.context.strokeStyle = card.hovered ? "#ffd166" : "#2f435b";
+      this.context.lineWidth = 2;
+      this.context.strokeRect(card.rect.x, card.rect.y, card.rect.width, card.rect.height);
+      this.context.fillStyle = "#e8eef7";
+      this.context.font = "700 28px system-ui";
+      this.context.textAlign = "left";
+      this.context.textBaseline = "top";
+      this.context.fillText(card.title, card.rect.x + 24, card.rect.y + 24);
+      this.context.font = "500 16px system-ui";
+      this.context.fillText(card.description, card.rect.x + 24, card.rect.y + 72);
+      this.context.fillText(`Best ${card.bestScore}`, card.rect.x + 24, card.rect.y + card.rect.height - 42);
+    }
   }
 
   private resizeCanvas(): CanvasMetrics {

@@ -164,4 +164,27 @@ describe("Renderer", () => {
       args: [480, 320, 4, 0, Math.PI * 2],
     });
   });
+
+  it("draws menu cards", () => {
+    const context = new FakeCanvasContext();
+    const renderer = createRenderer(context);
+
+    renderer.renderMenu({
+      cards: [
+        {
+          id: "menu:snake",
+          title: "Snake",
+          description: "Move from center.",
+          bestScore: 4,
+          rect: { x: 100, y: 120, width: 300, height: 200 },
+          hovered: true,
+        },
+      ],
+    });
+
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Snake", 124, 144],
+    });
+  });
 });
