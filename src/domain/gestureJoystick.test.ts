@@ -28,6 +28,32 @@ describe("GestureJoystick", () => {
     expect(output.speedScale).toBe(1);
   });
 
+  it("stays inactive exactly at the dead zone boundary", () => {
+    const joystick = new GestureJoystick({ deadZone: 0.1, maxDistance: 0.5 });
+
+    joystick.update({ x: 0, y: 0 });
+    const output = joystick.update({ x: 0.1, y: 0 });
+
+    expect(output.active).toBe(false);
+    expect(output.direction).toEqual({ x: 0, y: 0 });
+    expect(output.magnitude).toBeCloseTo(0.1);
+    expect(output.speedScale).toBe(0);
+  });
+
+  it("does not share mutable direction objects between inactive outputs", () => {
+    const joystick = new GestureJoystick({ deadZone: 0.1, maxDistance: 0.5 });
+
+    const first = joystick.update({ x: 0.1, y: 0.1 });
+    first.direction.x = 1;
+
+    const lost = joystick.update(null);
+    expect(lost.direction).toEqual({ x: 0, y: 0 });
+
+    lost.direction.y = 1;
+    const relocked = joystick.update({ x: 0.8, y: 0.8 });
+    expect(relocked.direction).toEqual({ x: 0, y: 0 });
+  });
+
   it("resets the origin after tracking is lost", () => {
     const joystick = new GestureJoystick({ deadZone: 0.1, maxDistance: 0.5 });
 
