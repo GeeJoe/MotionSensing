@@ -104,6 +104,51 @@ describe("extractIndexFingerTip", () => {
 });
 
 describe("CameraTracker", () => {
+  it("falls back to CPU hand tracking when GPU initialization fails", async () => {
+    const getUserMedia = vi.fn().mockResolvedValue(createStream());
+    const video = createVideo();
+    const detectForVideo = vi.fn().mockReturnValue({ landmarks: [] });
+
+    mediaPipeMocks.createFromOptions
+      .mockRejectedValueOnce(new Error("GPU unavailable"))
+      .mockResolvedValueOnce({
+        close: vi.fn(),
+        detectForVideo,
+      });
+    setGetUserMedia(getUserMedia);
+
+    const tracker = new CameraTracker(video as unknown as HTMLVideoElement);
+
+    await tracker.start();
+
+    expect(mediaPipeMocks.createFromOptions).toHaveBeenCalledTimes(2);
+    expect(mediaPipeMocks.createFromOptions).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        baseOptions: expect.objectContaining({
+          delegate: "GPU",
+        }),
+      }),
+    );
+    expect(mediaPipeMocks.createFromOptions).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        baseOptions: expect.objectContaining({
+          delegate: "CPU",
+        }),
+      }),
+    );
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    expect(video.play).toHaveBeenCalledTimes(1);
+    expect(tracker.detect(100)).toEqual({
+      point: null,
+      status: "searching",
+      errorMessage: null,
+    });
+  });
+
   it("closes a created landmarker when camera access is rejected", async () => {
     const close = vi.fn();
     const getUserMedia = vi.fn().mockRejectedValue(new Error("Permission denied"));

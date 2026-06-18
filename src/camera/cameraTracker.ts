@@ -15,6 +15,9 @@ interface LandmarkLike {
 }
 
 type LandmarkResultLike = Pick<HandLandmarkerResult, "landmarks"> | { landmarks: LandmarkLike[][] };
+type HandLandmarkerOptions = Parameters<typeof HandLandmarker.createFromOptions>[1];
+type LandmarkerDelegate = NonNullable<NonNullable<HandLandmarkerOptions["baseOptions"]>["delegate"]>;
+type VisionFileset = Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>;
 
 export function extractIndexFingerTip(result: LandmarkResultLike): Point | null {
   const firstHand = result.landmarks[0] as LandmarkLike[] | undefined;
@@ -42,18 +45,7 @@ export class CameraTracker {
   async start(): Promise<void> {
     try {
       this.setNoPointFrame("loading");
-      const vision = await FilesetResolver.forVisionTasks(WASM_URL);
-      this.landmarker = await HandLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: MODEL_URL,
-          delegate: "GPU",
-        },
-        runningMode: "VIDEO",
-        numHands: 1,
-        minHandDetectionConfidence: 0.5,
-        minHandPresenceConfidence: 0.5,
-        minTrackingConfidence: 0.5,
-      });
+      this.landmarker = await this.createLandmarker();
 
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -118,6 +110,30 @@ export class CameraTracker {
     this.landmarker?.close();
     this.landmarker = null;
     this.lastVideoTime = -1;
+  }
+
+  private async createLandmarker(): Promise<HandLandmarker> {
+    const vision = await FilesetResolver.forVisionTasks(WASM_URL);
+
+    try {
+      return await this.createLandmarkerWithDelegate(vision, "GPU");
+    } catch {
+      return this.createLandmarkerWithDelegate(vision, "CPU");
+    }
+  }
+
+  private createLandmarkerWithDelegate(vision: VisionFileset, delegate: LandmarkerDelegate): Promise<HandLandmarker> {
+    return HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: MODEL_URL,
+        delegate,
+      },
+      runningMode: "VIDEO",
+      numHands: 1,
+      minHandDetectionConfidence: 0.5,
+      minHandPresenceConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
   }
 
   private setNoPointFrame(status: TrackingFrame["status"], errorMessage: string | null = null): TrackingFrame {
