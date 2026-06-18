@@ -5,6 +5,8 @@ import { Renderer } from "./renderer";
 interface CanvasCall {
   method: string;
   args: unknown[];
+  fillStyle?: string;
+  strokeStyle?: string;
 }
 
 class FakeCanvasContext {
@@ -35,7 +37,7 @@ class FakeCanvasContext {
   }
 
   fillRect(...args: [number, number, number, number]): void {
-    this.calls.push({ method: "fillRect", args });
+    this.calls.push({ method: "fillRect", args, fillStyle: this.fillStyle });
   }
 
   fillText(...args: [string, number, number]): void {
@@ -71,7 +73,7 @@ class FakeCanvasContext {
   }
 
   strokeRect(...args: [number, number, number, number]): void {
-    this.calls.push({ method: "strokeRect", args });
+    this.calls.push({ method: "strokeRect", args, strokeStyle: this.strokeStyle });
   }
 
   translate(...args: [number, number]): void {
@@ -179,12 +181,48 @@ describe("Renderer", () => {
           rect: { x: 100, y: 120, width: 300, height: 200 },
           hovered: true,
         },
+        {
+          id: "menu:fruit-slice",
+          title: "Fruit Slice",
+          description: "Swipe through fruit.",
+          bestScore: 8,
+          rect: { x: 440, y: 120, width: 300, height: 200 },
+          hovered: false,
+        },
       ],
     });
 
     expect(context.calls).toContainEqual({
       method: "fillText",
       args: ["Snake", 124, 144],
+    });
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Move from center.", 124, 192],
+    });
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Best 4", 124, 278],
+    });
+    expect(context.calls).toContainEqual({
+      method: "fillRect",
+      args: [100, 120, 300, 200],
+      fillStyle: "#1d3b4f",
+    });
+    expect(context.calls).toContainEqual({
+      method: "strokeRect",
+      args: [100, 120, 300, 200],
+      strokeStyle: "#ffd166",
+    });
+    expect(context.calls).toContainEqual({
+      method: "fillRect",
+      args: [440, 120, 300, 200],
+      fillStyle: "#121b26",
+    });
+    expect(context.calls).toContainEqual({
+      method: "strokeRect",
+      args: [440, 120, 300, 200],
+      strokeStyle: "#2f435b",
     });
   });
 });
