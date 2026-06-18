@@ -3,7 +3,7 @@ import {
   HandLandmarker,
   type HandLandmarkerResult,
 } from "@mediapipe/tasks-vision";
-import type { Point, TrackingFrame } from "../domain/types";
+import type { TrackedPoint3D, TrackingFrame } from "../domain/types";
 
 const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
 const MODEL_URL =
@@ -12,6 +12,7 @@ const MODEL_URL =
 interface LandmarkLike {
   x: number;
   y: number;
+  z?: number;
 }
 
 type LandmarkResultLike = Pick<HandLandmarkerResult, "landmarks"> | { landmarks: LandmarkLike[][] };
@@ -19,7 +20,7 @@ type HandLandmarkerOptions = Parameters<typeof HandLandmarker.createFromOptions>
 type LandmarkerDelegate = NonNullable<NonNullable<HandLandmarkerOptions["baseOptions"]>["delegate"]>;
 type VisionFileset = Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>;
 
-export function extractIndexFingerTip(result: LandmarkResultLike): Point | null {
+export function extractIndexFingerTip(result: LandmarkResultLike): TrackedPoint3D | null {
   const firstHand = result.landmarks[0] as LandmarkLike[] | undefined;
   const indexTip = firstHand?.[8];
 
@@ -28,7 +29,7 @@ export function extractIndexFingerTip(result: LandmarkResultLike): Point | null 
   }
 
   // The preview is mirrored for a selfie-style camera view; mirror x so controls match it.
-  return { x: 1 - indexTip.x, y: indexTip.y };
+  return { x: 1 - indexTip.x, y: indexTip.y, z: indexTip.z ?? 0 };
 }
 
 export class CameraTracker {
@@ -81,7 +82,7 @@ export class CameraTracker {
     }
 
     this.lastVideoTime = this.video.currentTime;
-    let point: Point | null = null;
+    let point: TrackedPoint3D | null = null;
 
     try {
       const result = this.landmarker.detectForVideo(this.video, timestampMs);

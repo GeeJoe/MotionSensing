@@ -136,7 +136,7 @@ describe("Renderer", () => {
     const renderer = createRenderer(context);
     const tracking: TrackingFrame = {
       errorMessage: null,
-      point: { x: 0.25, y: 0.75 },
+      point: { x: 0.25, y: 0.75, z: 0 },
       status: "tracking",
     };
 

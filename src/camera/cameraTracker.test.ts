@@ -86,6 +86,21 @@ describe("extractIndexFingerTip", () => {
     expect(extractIndexFingerTip({ landmarks: [landmarks] })).toEqual({
       x: 0.92,
       y: 0.04,
+      z: 0,
+    });
+  });
+
+  it("returns mirrored x, y, and z for landmark 8", () => {
+    const landmarks = Array.from({ length: 21 }, (_, index) => ({
+      x: index / 100,
+      y: index / 200,
+      z: -index / 300,
+    }));
+
+    expect(extractIndexFingerTip({ landmarks: [landmarks] })).toEqual({
+      x: 0.92,
+      y: 0.04,
+      z: -8 / 300,
     });
   });
 
@@ -221,7 +236,7 @@ describe("CameraTracker", () => {
     };
     internals.lastVideoTime = 7;
     internals.latestFrame = {
-      point: { x: 0.4, y: 0.6 },
+      point: { x: 0.4, y: 0.6, z: 0 },
       status: "tracking",
       errorMessage: null,
     };
@@ -272,7 +287,7 @@ describe("CameraTracker", () => {
     };
     internals.lastVideoTime = 4;
     internals.latestFrame = {
-      point: { x: 0.2, y: 0.3 },
+      point: { x: 0.2, y: 0.3, z: 0 },
       status: "tracking",
       errorMessage: null,
     };

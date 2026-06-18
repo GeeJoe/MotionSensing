@@ -3,6 +3,10 @@ export interface Point {
   y: number;
 }
 
+export interface TrackedPoint3D extends Point {
+  z: number;
+}
+
 export interface MovementVector {
   active: boolean;
   direction: Point;
@@ -35,7 +39,7 @@ export interface SnakeGameState {
 }
 
 export interface TrackingFrame {
-  point: Point | null;
+  point: TrackedPoint3D | null;
   status: "loading" | "searching" | "tracking" | "error";
   errorMessage: string | null;
 }
