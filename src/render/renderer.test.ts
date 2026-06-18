@@ -86,14 +86,17 @@ function createTextElement(): HTMLElement {
   return { textContent: "" } as HTMLElement;
 }
 
-function createRendererWithElements(context: FakeCanvasContext): {
+function createRendererWithElements(
+  context: FakeCanvasContext,
+  size: { width: number; height: number } = { width: 960, height: 640 },
+): {
   elements: ConstructorParameters<typeof Renderer>[0];
   renderer: Renderer;
 } {
   const canvas = {
     width: 0,
     height: 0,
-    getBoundingClientRect: () => ({ width: 960, height: 640 }),
+    getBoundingClientRect: () => size,
     getContext: () => context,
   };
 
@@ -303,6 +306,25 @@ describe("Renderer", () => {
     });
   });
 
+  it("renderPointer applies the world transform for smaller canvas sizes", () => {
+    const context = new FakeCanvasContext();
+    const { renderer } = createRendererWithElements(context, { width: 480, height: 320 });
+
+    renderer.renderPointer({
+      clickAnimation: { active: false, point: null, progress: 0 },
+      pointer: { x: 100, y: 120 },
+    });
+
+    expect(context.calls).toContainEqual({
+      method: "scale",
+      args: [0.5, 0.5],
+    });
+    expect(context.calls).toContainEqual({
+      method: "arc",
+      args: [100, 120, 7, 0, Math.PI * 2],
+    });
+  });
+
   it("renderHomeButton draws the home button label", () => {
     const context = new FakeCanvasContext();
     const renderer = createRenderer(context);
@@ -313,6 +335,25 @@ describe("Renderer", () => {
       method: "fillText",
       args: ["Home", 60, 38],
     });
+  });
+
+  it("renderMenu resets stale debug panel values", () => {
+    const context = new FakeCanvasContext();
+    const { elements, renderer } = createRendererWithElements(context);
+
+    elements.statusValue.textContent = "tracking";
+    elements.scoreValue.textContent = "42";
+    elements.originValue.textContent = "0.50, 0.50";
+    elements.vectorValue.textContent = "1.00, 0.00 @ 0.50";
+    elements.errorText.textContent = "Previous error";
+
+    renderer.renderMenu({ cards: [] });
+
+    expect(elements.statusValue.textContent).toBe("menu");
+    expect(elements.scoreValue.textContent).toBe("0");
+    expect(elements.originValue.textContent).toBe("not locked");
+    expect(elements.vectorValue.textContent).toBe("paused");
+    expect(elements.errorText.textContent).toBe("");
   });
 
   it("renderFruitSlice falls back to fruit and bomb circles when images are unavailable", () => {
@@ -345,6 +386,30 @@ describe("Renderer", () => {
       method: "fillText",
       args: ["Restart", 480, 385],
     });
+  });
+
+  it("renderFruitSlice updates stale debug panel values", () => {
+    const context = new FakeCanvasContext();
+    const { elements, renderer } = createRendererWithElements(context);
+
+    elements.statusValue.textContent = "menu";
+    elements.scoreValue.textContent = "0";
+    elements.originValue.textContent = "0.50, 0.50";
+    elements.vectorValue.textContent = "paused";
+    elements.errorText.textContent = "Previous error";
+
+    renderer.renderFruitSlice({
+      ...fruitSliceState,
+      combo: 3,
+      lives: 2,
+      score: 14,
+    });
+
+    expect(elements.statusValue.textContent).toBe("running");
+    expect(elements.scoreValue.textContent).toBe("14");
+    expect(elements.originValue.textContent).toBe("not locked");
+    expect(elements.vectorValue.textContent).toBe("combo x3, lives 2");
+    expect(elements.errorText.textContent).toBe("");
   });
 
   it("renderTrackingError draws the error message centered", () => {

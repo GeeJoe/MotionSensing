@@ -154,4 +154,39 @@ describe("AppController", () => {
     expect(appMocks.rendererRenderMenu).toHaveBeenCalledTimes(3);
     expect(appMocks.rendererRenderHomeButton).toHaveBeenCalledTimes(1);
   });
+
+  it("does not treat the hidden fruit restart button as hover-clickable while fruit slice is running", async () => {
+    appMocks.trackerStart.mockResolvedValue({
+      point: null,
+      status: "searching",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+    appMocks.trackerDetect.mockReturnValue({
+      point: { x: 0.75, y: 0.46875, z: 0 },
+      status: "tracking",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+
+    const controller = new AppController(createRoot());
+
+    await controller.start();
+    animationCallbacks[0]?.(100);
+    animationCallbacks[1]?.(900);
+
+    expect(appMocks.rendererRenderFruitSlice).toHaveBeenCalledTimes(1);
+
+    appMocks.trackerDetect.mockReturnValue({
+      point: { x: 480 / 960, y: 385 / 640, z: 0 },
+      status: "tracking",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+
+    animationCallbacks[2]?.(1121);
+    animationCallbacks[3]?.(1922);
+
+    expect(appMocks.rendererRenderPointer).toHaveBeenLastCalledWith({
+      pointer: { x: 480, y: 385 },
+      clickAnimation: { active: false, point: null, progress: 0 },
+    });
+  });
 });

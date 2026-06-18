@@ -211,7 +211,14 @@ export class AppController {
       return this.currentScene.hitTest(point);
     }
 
-    if (this.currentScene.id === "fruit-slice" && point.x >= 380 && point.x <= 580 && point.y >= 350 && point.y <= 420) {
+    if (
+      this.currentScene instanceof FruitSliceScene &&
+      this.currentScene.getState().status === "game-over" &&
+      point.x >= 380 &&
+      point.x <= 580 &&
+      point.y >= 350 &&
+      point.y <= 420
+    ) {
       return "fruit:restart";
     }
 

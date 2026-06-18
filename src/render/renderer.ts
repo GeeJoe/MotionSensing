@@ -35,6 +35,8 @@ interface CanvasMetrics {
   height: number;
 }
 
+const WORLD_BOUNDS = { width: 960, height: 640 };
+
 export class Renderer {
   private readonly context: CanvasRenderingContext2D;
   private readonly imageCache = new Map<string, HTMLImageElement>();
@@ -65,6 +67,8 @@ export class Renderer {
     this.context.clearRect(0, 0, metrics.width, metrics.height);
     this.context.fillStyle = "#101820";
     this.context.fillRect(0, 0, metrics.width, metrics.height);
+    this.context.save();
+    this.applyWorldTransform(metrics);
 
     for (const card of view.cards) {
       this.context.fillStyle = card.hovered ? "#1d3b4f" : "#121b26";
@@ -81,11 +85,15 @@ export class Renderer {
       this.context.fillText(card.description, card.rect.x + 24, card.rect.y + 72);
       this.context.fillText(`Best ${card.bestScore}`, card.rect.x + 24, card.rect.y + card.rect.height - 42);
     }
+
+    this.context.restore();
+    this.updateMenuDebugPanel();
   }
 
   renderPointer(view: { pointer: Point | null; clickAnimation: ClickAnimationState }): void {
-    this.resizeCanvas();
+    const metrics = this.resizeCanvas();
     this.context.save();
+    this.applyWorldTransform(metrics);
 
     if (view.pointer) {
       this.context.fillStyle = "#ffd166";
@@ -107,13 +115,15 @@ export class Renderer {
   }
 
   renderHomeButton(hovered: boolean): void {
-    this.resizeCanvas();
+    const metrics = this.resizeCanvas();
 
-    const x = 24;
-    const y = 18;
-    const width = 72;
-    const height = 40;
+    const x = 16;
+    const y = 16;
+    const width = 88;
+    const height = 44;
 
+    this.context.save();
+    this.applyWorldTransform(metrics);
     this.context.fillStyle = hovered ? "#1d3b4f" : "#121b26";
     this.context.fillRect(x, y, width, height);
     this.context.strokeStyle = hovered ? "#ffd166" : "#2f435b";
@@ -123,7 +133,8 @@ export class Renderer {
     this.context.font = "700 16px system-ui";
     this.context.textAlign = "center";
     this.context.textBaseline = "middle";
-    this.context.fillText("Home", x + width / 2, y + height / 2);
+    this.context.fillText("Home", 60, 38);
+    this.context.restore();
   }
 
   renderTrackingError(tracking: TrackingFrame): void {
@@ -141,16 +152,12 @@ export class Renderer {
 
   renderFruitSlice(state: FruitSliceState): void {
     const metrics = this.resizeCanvas();
-    const scale = Math.min(metrics.width / state.bounds.width, metrics.height / state.bounds.height);
-    const offsetX = (metrics.width - state.bounds.width * scale) / 2;
-    const offsetY = (metrics.height - state.bounds.height * scale) / 2;
 
     this.context.clearRect(0, 0, metrics.width, metrics.height);
     this.context.fillStyle = "#101820";
     this.context.fillRect(0, 0, metrics.width, metrics.height);
     this.context.save();
-    this.context.translate(offsetX, offsetY);
-    this.context.scale(scale, scale);
+    this.applyWorldTransform(metrics, state.bounds);
     this.context.strokeStyle = "#2f435b";
     this.context.lineWidth = 2;
     this.context.strokeRect(1, 1, state.bounds.width - 2, state.bounds.height - 2);
@@ -160,25 +167,27 @@ export class Renderer {
     }
 
     this.context.restore();
+    this.context.save();
+    this.applyWorldTransform(metrics);
     this.context.fillStyle = "#e8eef7";
     this.context.font = "700 22px system-ui";
     this.context.textAlign = "left";
     this.context.textBaseline = "top";
     this.context.fillText(`Score ${state.score}`, 24, 24);
     this.context.textAlign = "right";
-    this.context.fillText(`Lives ${state.lives}`, metrics.width - 24, 24);
+    this.context.fillText(`Lives ${state.lives}`, WORLD_BOUNDS.width - 24, 24);
 
     if (state.combo > 1) {
       this.context.textAlign = "center";
-      this.context.fillText(`Combo x${state.combo}`, metrics.width / 2, 24);
+      this.context.fillText(`Combo x${state.combo}`, WORLD_BOUNDS.width / 2, 24);
     }
 
     if (state.status === "game-over") {
-      this.drawCenteredText("Game Over", metrics);
-      const buttonWidth = 160;
-      const buttonHeight = 50;
-      const buttonX = metrics.width / 2 - buttonWidth / 2;
-      const buttonY = metrics.height / 2 + 40;
+      this.drawCenteredTextInWorld("Game Over");
+      const buttonX = 380;
+      const buttonY = 350;
+      const buttonWidth = 200;
+      const buttonHeight = 70;
 
       this.context.fillStyle = "#ffd166";
       this.context.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
@@ -189,8 +198,11 @@ export class Renderer {
       this.context.font = "700 20px system-ui";
       this.context.textAlign = "center";
       this.context.textBaseline = "middle";
-      this.context.fillText("Restart", metrics.width / 2, buttonY + buttonHeight / 2);
+      this.context.fillText("Restart", 480, 385);
     }
+
+    this.context.restore();
+    this.updateFruitSliceDebugPanel(state);
   }
 
   private resizeCanvas(): CanvasMetrics {
@@ -211,16 +223,11 @@ export class Renderer {
   }
 
   private drawGame(game: SnakeGameState, debug: RenderDebugState, metrics: CanvasMetrics): void {
-    const scale = Math.min(metrics.width / game.bounds.width, metrics.height / game.bounds.height);
-    const offsetX = (metrics.width - game.bounds.width * scale) / 2;
-    const offsetY = (metrics.height - game.bounds.height * scale) / 2;
-
     this.context.clearRect(0, 0, metrics.width, metrics.height);
     this.context.fillStyle = "#101820";
     this.context.fillRect(0, 0, metrics.width, metrics.height);
     this.context.save();
-    this.context.translate(offsetX, offsetY);
-    this.context.scale(scale, scale);
+    this.applyWorldTransform(metrics, game.bounds);
     this.context.strokeStyle = "#2f435b";
     this.context.lineWidth = 2;
     this.context.strokeRect(1, 1, game.bounds.width - 2, game.bounds.height - 2);
@@ -343,6 +350,25 @@ export class Renderer {
     this.context.fillText(text, metrics.width / 2, metrics.height / 2);
   }
 
+  private drawCenteredTextInWorld(text: string): void {
+    this.context.fillStyle = "rgba(11, 17, 23, 0.72)";
+    this.context.fillRect(0, WORLD_BOUNDS.height / 2 - 34, WORLD_BOUNDS.width, 68);
+    this.context.fillStyle = "#e8eef7";
+    this.context.font = "600 24px system-ui";
+    this.context.textAlign = "center";
+    this.context.textBaseline = "middle";
+    this.context.fillText(text, WORLD_BOUNDS.width / 2, WORLD_BOUNDS.height / 2);
+  }
+
+  private applyWorldTransform(metrics: CanvasMetrics, bounds = WORLD_BOUNDS): void {
+    const scale = Math.min(metrics.width / bounds.width, metrics.height / bounds.height);
+    const offsetX = (metrics.width - bounds.width * scale) / 2;
+    const offsetY = (metrics.height - bounds.height * scale) / 2;
+
+    this.context.translate(offsetX, offsetY);
+    this.context.scale(scale, scale);
+  }
+
   private updateDebugPanel(game: SnakeGameState, debug: RenderDebugState): void {
     this.elements.statusValue.textContent = debug.tracking.status;
     this.elements.scoreValue.textContent = String(game.score);
@@ -353,5 +379,21 @@ export class Renderer {
       ? `${debug.joystick.direction.x.toFixed(2)}, ${debug.joystick.direction.y.toFixed(2)} @ ${debug.joystick.speedScale.toFixed(2)}`
       : "paused";
     this.elements.errorText.textContent = debug.tracking.errorMessage ?? "";
+  }
+
+  private updateMenuDebugPanel(): void {
+    this.elements.statusValue.textContent = "menu";
+    this.elements.scoreValue.textContent = "0";
+    this.elements.originValue.textContent = "not locked";
+    this.elements.vectorValue.textContent = "paused";
+    this.elements.errorText.textContent = "";
+  }
+
+  private updateFruitSliceDebugPanel(state: FruitSliceState): void {
+    this.elements.statusValue.textContent = state.status;
+    this.elements.scoreValue.textContent = String(state.score);
+    this.elements.originValue.textContent = "not locked";
+    this.elements.vectorValue.textContent = `combo x${state.combo}, lives ${state.lives}`;
+    this.elements.errorText.textContent = "";
   }
 }
