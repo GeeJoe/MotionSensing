@@ -132,6 +132,11 @@ export class Renderer {
     this.context.fillStyle = "#101820";
     this.context.fillRect(0, 0, metrics.width, metrics.height);
     this.drawCenteredText(tracking.errorMessage ?? "Tracking unavailable", metrics);
+    this.elements.statusValue.textContent = tracking.status;
+    this.elements.scoreValue.textContent = "0";
+    this.elements.originValue.textContent = "not locked";
+    this.elements.vectorValue.textContent = "paused";
+    this.elements.errorText.textContent = tracking.errorMessage ?? "";
   }
 
   renderFruitSlice(state: FruitSliceState): void {

@@ -86,7 +86,10 @@ function createTextElement(): HTMLElement {
   return { textContent: "" } as HTMLElement;
 }
 
-function createRenderer(context: FakeCanvasContext): Renderer {
+function createRendererWithElements(context: FakeCanvasContext): {
+  elements: ConstructorParameters<typeof Renderer>[0];
+  renderer: Renderer;
+} {
   const canvas = {
     width: 0,
     height: 0,
@@ -94,14 +97,23 @@ function createRenderer(context: FakeCanvasContext): Renderer {
     getContext: () => context,
   };
 
-  return new Renderer({
+  const elements = {
     canvas,
     statusValue: createTextElement(),
     scoreValue: createTextElement(),
     originValue: createTextElement(),
     vectorValue: createTextElement(),
     errorText: createTextElement(),
-  } as unknown as ConstructorParameters<typeof Renderer>[0]);
+  } as unknown as ConstructorParameters<typeof Renderer>[0];
+
+  return {
+    elements,
+    renderer: new Renderer(elements),
+  };
+}
+
+function createRenderer(context: FakeCanvasContext): Renderer {
+  return createRendererWithElements(context).renderer;
 }
 
 const game: SnakeGameState = {
@@ -337,12 +349,18 @@ describe("Renderer", () => {
 
   it("renderTrackingError draws the error message centered", () => {
     const context = new FakeCanvasContext();
-    const renderer = createRenderer(context);
+    const { elements, renderer } = createRendererWithElements(context);
     const tracking: TrackingFrame = {
       errorMessage: "Permission denied",
       point: null,
       status: "error",
     };
+
+    elements.statusValue.textContent = "tracking";
+    elements.scoreValue.textContent = "24";
+    elements.originValue.textContent = "0.50, 0.50";
+    elements.vectorValue.textContent = "1.00, 0.00 @ 0.50";
+    elements.errorText.textContent = "Previous error";
 
     renderer.renderTrackingError(tracking);
 
@@ -350,5 +368,10 @@ describe("Renderer", () => {
       method: "fillText",
       args: ["Permission denied", 480, 320],
     });
+    expect(elements.statusValue.textContent).toBe("error");
+    expect(elements.scoreValue.textContent).toBe("0");
+    expect(elements.originValue.textContent).toBe("not locked");
+    expect(elements.vectorValue.textContent).toBe("paused");
+    expect(elements.errorText.textContent).toBe("Permission denied");
   });
 });
