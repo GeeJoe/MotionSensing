@@ -53,6 +53,10 @@ export class Renderer {
     this.updateDebugPanel(game, debug);
   }
 
+  renderSnake(game: SnakeGameState, debug: RenderDebugState): void {
+    this.render(game, debug);
+  }
+
   renderMenu(view: MenuView): void {
     const metrics = this.resizeCanvas();
     this.context.clearRect(0, 0, metrics.width, metrics.height);
