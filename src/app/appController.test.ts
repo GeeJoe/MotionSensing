@@ -7,6 +7,12 @@ const appMocks = vi.hoisted(() => ({
   trackerDetect: vi.fn(),
   trackerDispose: vi.fn(),
   rendererRender: vi.fn(),
+  rendererRenderMenu: vi.fn(),
+  rendererRenderSnake: vi.fn(),
+  rendererRenderFruitSlice: vi.fn(),
+  rendererRenderPointer: vi.fn(),
+  rendererRenderHomeButton: vi.fn(),
+  rendererRenderTrackingError: vi.fn(),
 }));
 
 vi.mock("../camera/cameraTracker", () => ({
@@ -23,6 +29,12 @@ vi.mock("../render/renderer", () => ({
   Renderer: vi.fn(
     class {
       render = appMocks.rendererRender;
+      renderMenu = appMocks.rendererRenderMenu;
+      renderSnake = appMocks.rendererRenderSnake;
+      renderFruitSlice = appMocks.rendererRenderFruitSlice;
+      renderPointer = appMocks.rendererRenderPointer;
+      renderHomeButton = appMocks.rendererRenderHomeButton;
+      renderTrackingError = appMocks.rendererRenderTrackingError;
     },
   ),
 }));
@@ -45,16 +57,51 @@ function createRoot(): HTMLElement {
 }
 
 describe("AppController", () => {
+  let animationCallbacks: FrameRequestCallback[];
+
   beforeEach(() => {
     vi.resetAllMocks();
+    animationCallbacks = [];
     Object.defineProperty(globalThis, "requestAnimationFrame", {
       configurable: true,
-      value: vi.fn(() => 1),
+      value: vi.fn((callback: FrameRequestCallback) => {
+        animationCallbacks.push(callback);
+        return animationCallbacks.length;
+      }),
     });
     Object.defineProperty(globalThis, "cancelAnimationFrame", {
       configurable: true,
       value: vi.fn(),
     });
+  });
+
+  it("builds the Motion Arcade shell", () => {
+    const root = createRoot();
+
+    new AppController(root);
+
+    expect(root.innerHTML).toContain('aria-label="Motion Arcade game canvas"');
+    expect(root.innerHTML).toContain("<h1>Motion Arcade</h1>");
+  });
+
+  it("renders the menu after camera startup succeeds", async () => {
+    appMocks.trackerStart.mockResolvedValue({
+      point: null,
+      status: "searching",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+
+    const controller = new AppController(createRoot());
+
+    await controller.start();
+
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
+    expect(appMocks.rendererRenderMenu).toHaveBeenCalledTimes(1);
+    expect(appMocks.rendererRenderPointer).toHaveBeenCalledWith({
+      pointer: null,
+      clickAnimation: { active: false, point: null, progress: 0 },
+    });
+    expect(appMocks.rendererRenderHomeButton).not.toHaveBeenCalled();
   });
 
   it("does not schedule the game loop when camera startup fails", async () => {
@@ -70,11 +117,41 @@ describe("AppController", () => {
     await controller.start();
 
     expect(requestAnimationFrame).not.toHaveBeenCalled();
-    expect(appMocks.rendererRender).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        tracking: errorFrame,
-      }),
-    );
+    expect(appMocks.rendererRenderTrackingError).toHaveBeenCalledWith(errorFrame);
+    expect(appMocks.rendererRenderMenu).not.toHaveBeenCalled();
+  });
+
+  it("switches from menu to snake and back to menu through tracked clicks", async () => {
+    appMocks.trackerStart.mockResolvedValue({
+      point: null,
+      status: "searching",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+    appMocks.trackerDetect.mockReturnValue({
+      point: { x: 0.25, y: 0.46875, z: 0 },
+      status: "tracking",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+
+    const controller = new AppController(createRoot());
+
+    await controller.start();
+    animationCallbacks[0]?.(100);
+    animationCallbacks[1]?.(900);
+
+    expect(appMocks.rendererRenderMenu).toHaveBeenCalledTimes(2);
+    expect(appMocks.rendererRenderSnake).toHaveBeenCalledTimes(1);
+    expect(appMocks.rendererRenderHomeButton).toHaveBeenCalledWith(false);
+
+    appMocks.trackerDetect.mockReturnValue({
+      point: { x: 40 / 960, y: 40 / 640, z: -0.1 },
+      status: "tracking",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+
+    animationCallbacks[2]?.(940);
+
+    expect(appMocks.rendererRenderMenu).toHaveBeenCalledTimes(3);
+    expect(appMocks.rendererRenderHomeButton).toHaveBeenCalledTimes(1);
   });
 });
