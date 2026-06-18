@@ -1,5 +1,5 @@
 import type { Food, MovementVector, Point, SnakeGameState } from "./types";
-import { add, distance, normalize, scale } from "./vector";
+import { add, clamp, distance, normalize, scale } from "./vector";
 
 interface SnakeGameOptions {
   width: number;
@@ -36,8 +36,16 @@ export class SnakeGame {
     this.maxSpeed = options.maxSpeed ?? 240;
     this.random = options.random ?? Math.random;
 
-    const head = options.initialHead ?? { x: this.width / 2, y: this.height / 2 };
+    const head = options.initialHead
+      ? { ...options.initialHead }
+      : { x: this.width / 2, y: this.height / 2 };
     const initialLength = options.initialLength ?? 80;
+    const food = options.initialFood
+      ? {
+          radius: options.initialFood.radius,
+          position: { ...options.initialFood.position },
+        }
+      : this.spawnFood();
 
     this.state = {
       bounds: {
@@ -47,7 +55,7 @@ export class SnakeGame {
       head,
       trail: [head, { x: head.x - initialLength, y: head.y }],
       targetLength: initialLength,
-      food: options.initialFood ?? this.spawnFood(),
+      food,
       score: 0,
       status: "running",
     };
@@ -71,8 +79,10 @@ export class SnakeGame {
       return;
     }
 
-    const speed = this.baseSpeed + (this.maxSpeed - this.baseSpeed) * movement.speedScale;
-    const nextHead = add(this.state.head, scale(normalize(movement.direction), speed * deltaSeconds));
+    const previousHead = this.state.head;
+    const speedScale = clamp(movement.speedScale, 0, 1);
+    const speed = this.baseSpeed + (this.maxSpeed - this.baseSpeed) * speedScale;
+    const nextHead = add(previousHead, scale(normalize(movement.direction), speed * deltaSeconds));
     const nextTrail = this.trimTrail([nextHead, ...this.state.trail], this.state.targetLength);
 
     this.state = {
@@ -86,7 +96,7 @@ export class SnakeGame {
       return;
     }
 
-    if (distance(nextHead, this.state.food.position) <= this.headRadius + this.state.food.radius) {
+    if (this.isFoodHit(previousHead, nextHead, this.state.food)) {
       const targetLength = this.state.targetLength + this.growAmount;
       this.state = {
         ...this.state,
@@ -99,7 +109,37 @@ export class SnakeGame {
   }
 
   private isWallHit(point: Point): boolean {
-    return point.x < 0 || point.x > this.width || point.y < 0 || point.y > this.height;
+    return (
+      point.x - this.headRadius < 0 ||
+      point.x + this.headRadius > this.width ||
+      point.y - this.headRadius < 0 ||
+      point.y + this.headRadius > this.height
+    );
+  }
+
+  private isFoodHit(previousHead: Point, nextHead: Point, food: Food): boolean {
+    return this.distancePointToSegment(food.position, previousHead, nextHead) <= this.headRadius + food.radius;
+  }
+
+  private distancePointToSegment(point: Point, segmentStart: Point, segmentEnd: Point): number {
+    const segmentX = segmentEnd.x - segmentStart.x;
+    const segmentY = segmentEnd.y - segmentStart.y;
+    const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
+
+    if (segmentLengthSquared === 0) {
+      return distance(point, segmentStart);
+    }
+
+    const projection = clamp(
+      ((point.x - segmentStart.x) * segmentX + (point.y - segmentStart.y) * segmentY) / segmentLengthSquared,
+      0,
+      1,
+    );
+
+    return distance(point, {
+      x: segmentStart.x + segmentX * projection,
+      y: segmentStart.y + segmentY * projection,
+    });
   }
 
   private spawnFood(): Food {

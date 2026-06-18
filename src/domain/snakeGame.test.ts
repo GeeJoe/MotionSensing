@@ -80,4 +80,80 @@ describe("SnakeGame", () => {
 
     expect(game.getState().status).toBe("game-over");
   });
+
+  it("clamps movement speed scale before applying speed", () => {
+    const fastGame = new SnakeGame({
+      width: 500,
+      height: 200,
+      initialHead: { x: 100, y: 100 },
+      initialFood: { position: { x: 490, y: 190 }, radius: 8 },
+      baseSpeed: 100,
+      maxSpeed: 200,
+    });
+
+    fastGame.update({ ...moveRight, speedScale: 2 }, 1);
+
+    expect(fastGame.getState().head).toEqual({ x: 300, y: 100 });
+
+    const slowGame = new SnakeGame({
+      width: 500,
+      height: 200,
+      initialHead: { x: 100, y: 100 },
+      initialFood: { position: { x: 490, y: 190 }, radius: 8 },
+      baseSpeed: 100,
+      maxSpeed: 200,
+    });
+
+    slowGame.update({ ...moveRight, speedScale: -1 }, 1);
+
+    expect(slowGame.getState().head).toEqual({ x: 200, y: 100 });
+  });
+
+  it("counts food as eaten when movement segment crosses it", () => {
+    const game = new SnakeGame({
+      width: 300,
+      height: 200,
+      initialHead: { x: 80, y: 100 },
+      initialFood: { position: { x: 150, y: 100 }, radius: 8 },
+      baseSpeed: 200,
+      maxSpeed: 200,
+    });
+
+    game.update(moveRight, 0.5);
+
+    expect(game.getState().score).toBe(1);
+  });
+
+  it("ends run when head radius crosses a wall", () => {
+    const game = new SnakeGame({
+      width: 300,
+      height: 200,
+      initialHead: { x: 289, y: 100 },
+      initialFood: { position: { x: 100, y: 100 }, radius: 8 },
+      headRadius: 10,
+      baseSpeed: 2,
+      maxSpeed: 2,
+    });
+
+    game.update(moveRight, 1);
+
+    expect(game.getState().status).toBe("game-over");
+  });
+
+  it("clones initial input objects", () => {
+    const initialHead = { x: 100, y: 100 };
+    const initialFood = { position: { x: 260, y: 100 }, radius: 8 };
+    const game = new SnakeGame({
+      width: 300,
+      height: 200,
+      initialHead,
+      initialFood,
+    });
+
+    initialHead.x = 10;
+    initialFood.position.x = 20;
+
+    expect(game.getState().head).toEqual({ x: 100, y: 100 });
+    expect(game.getState().food.position).toEqual({ x: 260, y: 100 });
+  });
 });
