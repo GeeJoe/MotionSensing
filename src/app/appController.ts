@@ -22,8 +22,11 @@ export class AppController {
   private readonly tracker: CameraTracker;
   private readonly joystick = new GestureJoystick({ deadZone: 0.035, maxDistance: 0.32 });
   private readonly game = new SnakeGame({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
+  private startPromise: Promise<void> | null = null;
   private animationFrameId: number | null = null;
   private lastFrameTime: number | null = null;
+  private running = false;
+  private disposed = false;
   private latestTracking: TrackingFrame = {
     point: null,
     status: "loading",
@@ -66,13 +69,34 @@ export class AppController {
     });
   }
 
-  async start(): Promise<void> {
-    this.render();
-    await this.tracker.start();
-    this.animationFrameId = requestAnimationFrame((timestamp) => this.loop(timestamp));
+  start(): Promise<void> {
+    if (this.disposed) {
+      return Promise.resolve();
+    }
+
+    if (this.startPromise) {
+      return this.startPromise;
+    }
+
+    if (this.running) {
+      return Promise.resolve();
+    }
+
+    this.startPromise = this.startInternal().finally(() => {
+      this.startPromise = null;
+    });
+
+    return this.startPromise;
   }
 
   dispose(): void {
+    if (this.disposed) {
+      return;
+    }
+
+    this.disposed = true;
+    this.running = false;
+
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -81,7 +105,25 @@ export class AppController {
     this.tracker.dispose();
   }
 
+  private async startInternal(): Promise<void> {
+    this.render();
+    await this.tracker.start();
+
+    if (this.disposed) {
+      this.tracker.dispose();
+      return;
+    }
+
+    this.running = true;
+    this.animationFrameId = requestAnimationFrame((timestamp) => this.loop(timestamp));
+  }
+
   private loop(timestamp: number): void {
+    if (this.disposed || !this.running) {
+      this.animationFrameId = null;
+      return;
+    }
+
     const deltaSeconds = this.lastFrameTime === null ? 0 : Math.min((timestamp - this.lastFrameTime) / 1000, 0.05);
     this.lastFrameTime = timestamp;
 
@@ -89,6 +131,11 @@ export class AppController {
     this.latestJoystick = this.joystick.update(this.latestTracking.point);
     this.game.update(this.latestJoystick, deltaSeconds);
     this.render();
+
+    if (this.disposed || !this.running) {
+      this.animationFrameId = null;
+      return;
+    }
 
     this.animationFrameId = requestAnimationFrame((nextTimestamp) => this.loop(nextTimestamp));
   }

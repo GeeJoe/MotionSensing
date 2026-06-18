@@ -117,7 +117,21 @@ button {
 
   .side-panel {
     display: grid;
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
     align-items: start;
+  }
+
+  .side-panel > * {
+    min-width: 0;
+  }
+
+  .error-text {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .side-panel {
+    grid-template-columns: 1fr;
   }
 }

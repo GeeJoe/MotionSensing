@@ -8,7 +8,10 @@ if (!root) {
 }
 
 const app = new AppController(root);
-app.start();
+app.start().catch((error: unknown) => {
+  console.error(error);
+  app.dispose();
+});
 
 window.addEventListener("beforeunload", () => {
   app.dispose();
