@@ -60,9 +60,11 @@ export class FruitSliceGame {
     this.width = options.width;
     this.height = options.height;
     this.random = options.random ?? Math.random;
+    const objects = (options.initialObjects ?? []).map((object) => this.cloneObject(object));
+    this.nextId = this.nextObjectId(objects);
     this.state = {
       bounds: { width: this.width, height: this.height },
-      objects: (options.initialObjects ?? []).map((object) => this.cloneObject(object)),
+      objects,
       score: 0,
       combo: 0,
       lives: options.lives ?? 3,
@@ -113,6 +115,10 @@ export class FruitSliceGame {
     }
 
     for (const object of this.state.objects) {
+      if (this.isGameOver()) {
+        return;
+      }
+
       if (object.sliced || !this.trailSlicesObject(trail, object)) {
         continue;
       }
@@ -128,6 +134,9 @@ export class FruitSliceGame {
       } else {
         this.loseLife();
         this.state = { ...this.state, combo: 0 };
+        if (this.isGameOver()) {
+          return;
+        }
       }
     }
   }
@@ -225,6 +234,13 @@ export class FruitSliceGame {
 
   private isGameOver(): boolean {
     return this.state.status === "game-over";
+  }
+
+  private nextObjectId(objects: SliceObject[]): number {
+    return objects.reduce((nextId, object) => {
+      const suffix = /(\d+)$/.exec(object.id);
+      return suffix ? Math.max(nextId, Number(suffix[1]) + 1) : nextId;
+    }, 1);
   }
 
   private cloneObject<T extends SliceObject>(object: T): T {
