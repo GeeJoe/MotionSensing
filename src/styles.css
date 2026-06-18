@@ -100,3 +100,24 @@ button {
   font-size: 13px;
   line-height: 1.4;
 }
+
+.game-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(420px, 1fr) auto;
+  }
+
+  .side-panel {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    align-items: start;
+  }
+}
