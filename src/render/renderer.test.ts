@@ -119,6 +119,10 @@ function createRenderer(context: FakeCanvasContext): Renderer {
   return createRendererWithElements(context).renderer;
 }
 
+function worldScaleCallCount(context: FakeCanvasContext, scale: number): number {
+  return context.calls.filter((call) => call.method === "scale" && call.args[0] === scale && call.args[1] === scale).length;
+}
+
 const game: SnakeGameState = {
   bounds: { width: 960, height: 640 },
   food: { position: { x: 720, y: 320 }, radius: 8 },
@@ -287,6 +291,35 @@ describe("Renderer", () => {
     });
   });
 
+  it("renderMenu applies the world transform for smaller canvas sizes", () => {
+    const context = new FakeCanvasContext();
+    const { renderer } = createRendererWithElements(context, { width: 480, height: 320 });
+
+    renderer.renderMenu({
+      cards: [
+        {
+          id: "menu:snake",
+          title: "Snake",
+          description: "Move from center.",
+          bestScore: 4,
+          rect: { x: 100, y: 120, width: 300, height: 200 },
+          hovered: true,
+        },
+      ],
+    });
+
+    expect(worldScaleCallCount(context, 0.5)).toBe(1);
+    expect(context.calls).toContainEqual({
+      method: "fillRect",
+      args: [100, 120, 300, 200],
+      fillStyle: "#1d3b4f",
+    });
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Snake", 124, 144],
+    });
+  });
+
   it("renderPointer draws the pointer click animation ring", () => {
     const context = new FakeCanvasContext();
     const renderer = createRenderer(context);
@@ -331,6 +364,24 @@ describe("Renderer", () => {
 
     renderer.renderHomeButton(true);
 
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Home", 60, 38],
+    });
+  });
+
+  it("renderHomeButton applies the world transform for smaller canvas sizes", () => {
+    const context = new FakeCanvasContext();
+    const { renderer } = createRendererWithElements(context, { width: 480, height: 320 });
+
+    renderer.renderHomeButton(true);
+
+    expect(worldScaleCallCount(context, 0.5)).toBe(1);
+    expect(context.calls).toContainEqual({
+      method: "fillRect",
+      args: [16, 16, 88, 44],
+      fillStyle: "#1d3b4f",
+    });
     expect(context.calls).toContainEqual({
       method: "fillText",
       args: ["Home", 60, 38],
@@ -382,6 +433,28 @@ describe("Renderer", () => {
       status: "game-over",
     });
 
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Restart", 480, 385],
+    });
+  });
+
+  it("renderFruitSlice applies the world transform for the game-over restart overlay at smaller canvas sizes", () => {
+    const context = new FakeCanvasContext();
+    const { renderer } = createRendererWithElements(context, { width: 480, height: 320 });
+
+    renderer.renderFruitSlice({
+      ...fruitSliceState,
+      objects: [],
+      status: "game-over",
+    });
+
+    expect(worldScaleCallCount(context, 0.5)).toBe(2);
+    expect(context.calls).toContainEqual({
+      method: "fillRect",
+      args: [380, 350, 200, 70],
+      fillStyle: "#ffd166",
+    });
     expect(context.calls).toContainEqual({
       method: "fillText",
       args: ["Restart", 480, 385],
