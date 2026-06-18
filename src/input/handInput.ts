@@ -1,7 +1,7 @@
 import type { ClickEvent, HandInputState, Point, SwipeSample, TrackedPoint3D } from "../domain/types";
 import { pointFromNormalized, type Size } from "../domain/geometry";
 
-interface HandInputOptions {
+export interface HandInputOptions {
   canvasSize: Size;
   hoverClickMs: number;
   pokeDepthDelta: number;
@@ -9,7 +9,7 @@ interface HandInputOptions {
   maxTrailAgeMs: number;
 }
 
-interface HandInputUpdate {
+export interface HandInputUpdate {
   timestampMs: number;
   trackingPoint: TrackedPoint3D | null;
   hoverTargetId: string | null;
@@ -42,7 +42,7 @@ export class HandInputController {
     const pointer = pointFromNormalized(update.trackingPoint, this.options.canvasSize);
     this.updateTrail(pointer, update.timestampMs);
     const click = this.detectClick(update, pointer);
-    this.previousPoint = update.trackingPoint;
+    this.previousPoint = { ...update.trackingPoint };
 
     if (click) {
       this.clickAnimationStartedAt = update.timestampMs;
@@ -127,7 +127,7 @@ export class HandInputController {
   ): HandInputState {
     return {
       pointer,
-      normalizedPointer,
+      normalizedPointer: normalizedPointer ? { ...normalizedPointer } : null,
       pointerVisible: Boolean(pointer),
       trail: this.trail.map((sample) => ({ point: { ...sample.point }, timestampMs: sample.timestampMs })),
       click,
@@ -154,6 +154,8 @@ export class HandInputController {
 
     const progress = (timestampMs - this.clickAnimationStartedAt) / this.options.clickAnimationMs;
     if (progress >= 1) {
+      this.clickAnimationStartedAt = null;
+      this.clickAnimationPoint = null;
       return { active: false, point: null, progress: 0 };
     }
 
