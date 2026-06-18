@@ -41,7 +41,7 @@ export class CameraTracker {
 
   async start(): Promise<void> {
     try {
-      this.latestFrame = { point: null, status: "loading", errorMessage: null };
+      this.setNoPointFrame("loading");
       const vision = await FilesetResolver.forVisionTasks(WASM_URL);
       this.landmarker = await HandLandmarker.createFromOptions(vision, {
         baseOptions: {
@@ -66,13 +66,10 @@ export class CameraTracker {
 
       this.video.srcObject = this.stream;
       await this.video.play();
-      this.latestFrame = { point: null, status: "searching", errorMessage: null };
+      this.setNoPointFrame("searching");
     } catch (error) {
-      this.latestFrame = {
-        point: null,
-        status: "error",
-        errorMessage: error instanceof Error ? error.message : "Unable to start camera tracking",
-      };
+      this.releaseResources();
+      this.setNoPointFrame("error", error instanceof Error ? error.message : "Unable to start camera tracking");
     }
   }
 
@@ -82,7 +79,8 @@ export class CameraTracker {
     }
 
     if (this.video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-      return { point: null, status: "searching", errorMessage: null };
+      this.lastVideoTime = -1;
+      return this.setNoPointFrame("searching");
     }
 
     if (this.video.currentTime === this.lastVideoTime) {
@@ -90,8 +88,14 @@ export class CameraTracker {
     }
 
     this.lastVideoTime = this.video.currentTime;
-    const result = this.landmarker.detectForVideo(this.video, timestampMs);
-    const point = extractIndexFingerTip(result);
+    let point: Point | null = null;
+
+    try {
+      const result = this.landmarker.detectForVideo(this.video, timestampMs);
+      point = extractIndexFingerTip(result);
+    } catch (error) {
+      return this.setNoPointFrame("error", error instanceof Error ? error.message : "Unable to detect hand position");
+    }
 
     this.latestFrame = {
       point,
@@ -103,10 +107,26 @@ export class CameraTracker {
   }
 
   dispose(): void {
+    this.releaseResources();
+    this.setNoPointFrame("searching");
+  }
+
+  private releaseResources(): void {
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
     this.video.srcObject = null;
     this.landmarker?.close();
     this.landmarker = null;
+    this.lastVideoTime = -1;
+  }
+
+  private setNoPointFrame(status: TrackingFrame["status"], errorMessage: string | null = null): TrackingFrame {
+    this.latestFrame = {
+      point: null,
+      status,
+      errorMessage,
+    };
+
+    return this.latestFrame;
   }
 }
