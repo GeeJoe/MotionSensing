@@ -1,4 +1,5 @@
 import type { JoystickOutput, SnakeGameState, TrackingFrame } from "../domain/types";
+import { clamp } from "../domain/vector";
 
 interface RendererElements {
   canvas: HTMLCanvasElement;
@@ -73,6 +74,7 @@ export class Renderer {
 
     this.drawFood(game);
     this.drawSnake(game);
+    this.drawFingerPoint(game, debug.tracking);
     this.context.restore();
 
     if (debug.tracking.status === "searching") {
@@ -111,6 +113,23 @@ export class Renderer {
     this.context.fillStyle = "#ff6b6b";
     this.context.beginPath();
     this.context.arc(game.food.position.x, game.food.position.y, game.food.radius, 0, Math.PI * 2);
+    this.context.fill();
+  }
+
+  private drawFingerPoint(game: SnakeGameState, tracking: TrackingFrame): void {
+    if (!tracking.point) {
+      return;
+    }
+
+    this.context.fillStyle = "#ffd166";
+    this.context.beginPath();
+    this.context.arc(
+      clamp(tracking.point.x, 0, 1) * game.bounds.width,
+      clamp(tracking.point.y, 0, 1) * game.bounds.height,
+      6,
+      0,
+      Math.PI * 2,
+    );
     this.context.fill();
   }
 

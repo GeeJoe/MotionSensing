@@ -33,6 +33,30 @@ describe("SnakeGame", () => {
     expect(game.getState().status).toBe("running");
   });
 
+  it("uses the slower default speed range", () => {
+    const fastGame = new SnakeGame({
+      width: 500,
+      height: 200,
+      initialHead: { x: 100, y: 100 },
+      initialFood: { position: { x: 490, y: 190 }, radius: 8 },
+    });
+
+    fastGame.update(moveRight, 1);
+
+    expect(fastGame.getState().head).toEqual({ x: 265, y: 100 });
+
+    const baseGame = new SnakeGame({
+      width: 500,
+      height: 200,
+      initialHead: { x: 100, y: 100 },
+      initialFood: { position: { x: 490, y: 190 }, radius: 8 },
+    });
+
+    baseGame.update({ ...moveRight, speedScale: 0 }, 1);
+
+    expect(baseGame.getState().head).toEqual({ x: 155, y: 100 });
+  });
+
   it("pauses movement when the joystick is inactive", () => {
     const game = new SnakeGame({
       width: 300,

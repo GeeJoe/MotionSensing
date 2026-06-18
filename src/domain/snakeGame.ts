@@ -32,8 +32,8 @@ export class SnakeGame {
     this.growAmount = options.growAmount ?? 36;
     this.headRadius = options.headRadius ?? 9;
     this.foodRadius = options.foodRadius ?? 8;
-    this.baseSpeed = options.baseSpeed ?? 80;
-    this.maxSpeed = options.maxSpeed ?? 240;
+    this.baseSpeed = options.baseSpeed ?? 55;
+    this.maxSpeed = options.maxSpeed ?? 165;
     this.random = options.random ?? Math.random;
 
     const head = options.initialHead
