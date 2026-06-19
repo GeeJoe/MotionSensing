@@ -26,6 +26,25 @@ describe("FruitSliceGame", () => {
     expect(game.getState().objects[0].sliced).toBe(true);
   });
 
+  it("slices a moving fruit at the position the player just swiped through", () => {
+    const game = new FruitSliceGame({
+      width: 960,
+      height: 640,
+      random: () => 0.5,
+      initialObjects: [
+        { id: "fruit-1", kind: "fruit", fruitType: "apple", position: { x: 300, y: 300 }, velocity: { x: 0, y: -870 }, radius: 40, sliced: false },
+      ],
+    });
+
+    game.update(0.05, [
+      { point: { x: 240, y: 300 }, timestampMs: 0 },
+      { point: { x: 360, y: 300 }, timestampMs: 180 },
+    ]);
+
+    expect(game.getState().score).toBe(10);
+    expect(game.getState().objects[0].sliced).toBe(true);
+  });
+
   it("does not slice fruit with a slow trail", () => {
     const game = new FruitSliceGame({
       width: 960,

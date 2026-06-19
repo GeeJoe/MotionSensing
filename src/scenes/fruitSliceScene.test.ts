@@ -47,6 +47,19 @@ describe("FruitSliceScene", () => {
     expect(visibleFruit).toBeDefined();
   });
 
+  it("does not spawn an extra fruit on the first frame after entering normal play", () => {
+    const scene = new FruitSliceScene({
+      bounds: BOUNDS,
+      bestScores: new BestScores(null),
+      render: () => undefined,
+      random: () => 0.5,
+    });
+
+    scene.update({ deltaSeconds: 0.016, input: input() });
+
+    expect(scene.getState().objects).toHaveLength(1);
+  });
+
   it("records the current score and switches to menu when Home is clicked", () => {
     const bestScores = new BestScores(null);
     const initialObjects: SliceObject[] = [

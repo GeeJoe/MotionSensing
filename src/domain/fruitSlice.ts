@@ -42,11 +42,12 @@ interface FruitSliceOptions {
   lives?: number;
   random?: () => number;
   initialObjects?: SliceObject[];
+  initialSpawnDelay?: number;
 }
 
 const FRUIT_TYPES: FruitType[] = ["apple", "orange", "watermelon", "banana", "strawberry", "kiwi", "pineapple", "dragon-fruit"];
 const GRAVITY = 780;
-const MIN_SLICE_SPEED = 700;
+const MIN_SLICE_SPEED = 220;
 
 export class FruitSliceGame {
   private readonly width: number;
@@ -60,6 +61,7 @@ export class FruitSliceGame {
     this.width = options.width;
     this.height = options.height;
     this.random = options.random ?? Math.random;
+    this.spawnTimer = options.initialSpawnDelay ?? 0;
     const objects = (options.initialObjects ?? []).map((object) => this.cloneObject(object));
     this.nextId = this.nextObjectId(objects);
     this.state = {
@@ -89,13 +91,17 @@ export class FruitSliceGame {
     this.state = {
       ...this.state,
       elapsedSeconds: this.state.elapsedSeconds + deltaSeconds,
-      objects: this.state.objects.map((object) => this.moveObject(object, deltaSeconds)),
     };
 
     this.applySlices(trail);
     if (this.isGameOver()) {
       return;
     }
+
+    this.state = {
+      ...this.state,
+      objects: this.state.objects.map((object) => this.moveObject(object, deltaSeconds)),
+    };
 
     this.removeMissedObjects();
     if (this.isGameOver()) {

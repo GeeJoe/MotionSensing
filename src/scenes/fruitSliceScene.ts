@@ -4,6 +4,8 @@ import { BestScores } from "../storage/bestScores";
 import type { Scene, SceneRenderContext, SceneTransition, SceneUpdateContext } from "./scene";
 import { NO_TRANSITION } from "./scene";
 
+const STARTER_SPAWN_DELAY_SECONDS = 2;
+
 interface FruitSliceSceneOptions {
   bounds: Size;
   bestScores: BestScores;
@@ -56,12 +58,15 @@ export class FruitSliceScene implements Scene {
   }
 
   private createGame(lives: number | undefined, initialObjects: SliceObject[] | undefined): FruitSliceGame {
+    const usesStarterFruit = initialObjects === undefined;
+
     return new FruitSliceGame({
       width: this.options.bounds.width,
       height: this.options.bounds.height,
       lives,
       random: this.options.random,
-      initialObjects: initialObjects ?? [this.createStarterFruit()],
+      initialObjects: usesStarterFruit ? [this.createStarterFruit()] : initialObjects,
+      initialSpawnDelay: usesStarterFruit ? STARTER_SPAWN_DELAY_SECONDS : undefined,
     });
   }
 
