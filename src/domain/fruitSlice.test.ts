@@ -315,12 +315,13 @@ describe("FruitSliceGame", () => {
 
     const firstState = game.getState();
     expect(firstState.objects).toHaveLength(1);
+    expect(firstState.objects[0].position.y - firstState.objects[0].radius).toBeLessThanOrEqual(firstState.bounds.height);
     expect(firstState.objects[0]).toMatchObject({
       id: "fruit-1",
       kind: "fruit",
       fruitType: "apple",
-      position: { x: 280, y: 690 },
-      velocity: { x: 0, y: -870 },
+      position: { x: 280, y: 570 },
+      velocity: { x: 0, y: -590 },
       radius: 38,
       sliced: false,
     });

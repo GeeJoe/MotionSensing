@@ -423,6 +423,18 @@ describe("Renderer", () => {
     });
   });
 
+  it("keeps the Fruit Slice score clear of the Home button area", () => {
+    const context = new FakeCanvasContext();
+    const renderer = createRenderer(context);
+
+    renderer.renderFruitSlice(fruitSliceState);
+
+    expect(context.calls).toContainEqual({
+      method: "fillText",
+      args: ["Score 12", 124, 24],
+    });
+  });
+
   it("renderFruitSlice draws a restart button on game over", () => {
     const context = new FakeCanvasContext();
     const renderer = createRenderer(context);

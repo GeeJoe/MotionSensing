@@ -189,4 +189,49 @@ describe("AppController", () => {
       clickAnimation: { active: false, point: null, progress: 0 },
     });
   });
+
+  it("slices the starter fruit with a natural-speed hand swipe", async () => {
+    appMocks.trackerStart.mockResolvedValue({
+      point: null,
+      status: "searching",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+    appMocks.trackerDetect.mockReturnValue({
+      point: { x: 0.75, y: 0.46875, z: 0 },
+      status: "tracking",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+
+    const controller = new AppController(createRoot());
+
+    await controller.start();
+    animationCallbacks[0]?.(100);
+    animationCallbacks[1]?.(900);
+
+    expect(appMocks.rendererRenderFruitSlice).toHaveBeenCalled();
+
+    appMocks.trackerDetect.mockReturnValue({
+      point: null,
+      status: "searching",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+    animationCallbacks[2]?.(1000);
+
+    appMocks.trackerDetect.mockReturnValue({
+      point: { x: 420 / 960, y: 474 / 640, z: 0 },
+      status: "tracking",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+    animationCallbacks[3]?.(1100);
+
+    appMocks.trackerDetect.mockReturnValue({
+      point: { x: 540 / 960, y: 474 / 640, z: 0 },
+      status: "tracking",
+      errorMessage: null,
+    } satisfies TrackingFrame);
+    animationCallbacks[4]?.(1700);
+
+    const fruitStates = appMocks.rendererRenderFruitSlice.mock.calls.map(([state]) => state);
+    expect(fruitStates.at(-1)).toMatchObject({ score: 10 });
+  });
 });

@@ -47,7 +47,7 @@ interface FruitSliceOptions {
 
 const FRUIT_TYPES: FruitType[] = ["apple", "orange", "watermelon", "banana", "strawberry", "kiwi", "pineapple", "dragon-fruit"];
 const GRAVITY = 780;
-const MIN_SLICE_SPEED = 220;
+const MIN_SLICE_SPEED = 60;
 
 export class FruitSliceGame {
   private readonly width: number;
@@ -209,10 +209,10 @@ export class FruitSliceGame {
     const bombChance = Math.min(0.25, 0.1 + this.state.elapsedSeconds / 240);
     const isBomb = this.random() < bombChance;
     const x = 80 + this.random() * (this.width - 160);
-    const y = this.height + 50;
+    const y = this.height - 70;
     const velocity = {
       x: -180 + this.random() * 360,
-      y: -760 - this.random() * 220,
+      y: -520 - this.random() * 140,
     };
 
     this.state = {

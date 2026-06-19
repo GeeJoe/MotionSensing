@@ -24,7 +24,7 @@ export class AppController {
     hoverClickMs: 800,
     pokeDepthDelta: 0.08,
     clickAnimationMs: 220,
-    maxTrailAgeMs: 180,
+    maxTrailAgeMs: 900,
   });
   private currentScene: Scene;
   private startPromise: Promise<void> | null = null;

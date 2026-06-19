@@ -173,7 +173,7 @@ export class Renderer {
     this.context.font = "700 22px system-ui";
     this.context.textAlign = "left";
     this.context.textBaseline = "top";
-    this.context.fillText(`Score ${state.score}`, 24, 24);
+    this.context.fillText(`Score ${state.score}`, 124, 24);
     this.context.textAlign = "right";
     this.context.fillText(`Lives ${state.lives}`, WORLD_BOUNDS.width - 24, 24);
 
